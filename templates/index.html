@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo192.png') }}" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+    <!--
+      Notice the use of Flask's `url_for` function to generate the correct URLs.
+    -->
+    <title>React App</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <div class="login"></div>
+    <form action="{{ url_for('predict') }}" method="post">
+      <input type="text" name="Name" placeholder="Name" required="required"><br>
+      <input type="text" name="Email" placeholder="Email" required="required">
+      <button type="submit" class="btn btn-primary btn-block btn-large">Show your expression</button>
+    </form>
+
+    <h4 style="color: aqua;">
+      {{ prediction_text }}
+    </h4>
+  </body>
+</html>
