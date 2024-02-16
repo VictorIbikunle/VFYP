@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import "./Home.css";
 
@@ -11,6 +10,7 @@ const Patient = () => {
 
   const [patients, setPatients] = useState([]);
   const [userMessage, setUserMessage] = useState('');
+  const [selectedPatientData, setSelectedPatientData] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -66,6 +66,20 @@ const Patient = () => {
     }
   };
 
+  const fetchPatientData = async (patientId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/get_patient_data/${patientId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedPatientData(data.patientData);
+      } else {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching patient data for ID ${patientId}:`, error.message);
+    }
+  };
+
   // Fetch patients on component mount
   useEffect(() => {
     fetchPatients();
@@ -104,10 +118,23 @@ const Patient = () => {
         <h2>All Patients</h2>
         <ul>
           {patients.map((patient) => (
-            <li key={patient._id}>{patient.name}</li>
+            <li key={patient._id}>
+              {patient.name}
+              <button onClick={() => fetchPatientData(patient._id)}>Select</button>
+            </li>
           ))}
         </ul>
       </div>
+
+      {/* Display the selected patient data */}
+      {selectedPatientData && (
+        <div>
+          <h2>Selected Patient Data</h2>
+          <p>Name: {selectedPatientData.name}</p>
+          <p>Date of Birth: {selectedPatientData.dob}</p>
+          <p>Phone Number: {selectedPatientData.phoneNumber}</p>
+        </div>
+      )}
     </div>
   );
 };

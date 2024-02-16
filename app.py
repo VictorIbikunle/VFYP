@@ -8,6 +8,8 @@ import threading
 from flask_socketio import SocketIO, emit
 from bson import ObjectId  # Add this import
 from flask import jsonify
+from datetime import datetime
+
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -44,16 +46,16 @@ patient_schema = {
 # Create a patient collection
 patient_collection = mongo.db.patients
 
-goal_schema = {
+goals_schema = {
     "name": str,
     "description": str,
     "startDate": str,
     "endDate": str,
-    "progress": int,
-    "patient_id": ObjectId  # Reference to the patient
+    "patient_id": ObjectId
 }
 
-goal_collection = mongo.db.goals
+
+goals_collection = mongo.db.goals
 
 
 # Define the emotion graph schema
@@ -130,11 +132,14 @@ def save_data():
 
         # Associate patient ID with goal data
         goal_data["patient_id"] = patient_id
-        goal_collection.insert_one(goal_data)
+        goal_data["startDate"] = datetime.strptime(goal_data["startDate"], "%Y-%m-%d").strftime("%Y-%m-%d")
+        goal_data["endDate"] = datetime.strptime(goal_data["endDate"], "%Y-%m-%d").strftime("%Y-%m-%d")
+
+        # Save goal data into the goals collection
+        goals_collection.insert_one(goal_data)
 
         # Associate patient ID with emotion data
         emotion_data["patient_id"] = patient_id
-        log_collection = mongo.db.log
         log_collection.insert_one(emotion_data)
 
         message = f"User selected: {patient_data['name']}"  # Create a message with the patient's name
@@ -144,6 +149,8 @@ def save_data():
         return jsonify({'error': str(e)})
     
 
+
+    
     # Define the endpoint to get all patients
 @app.route('/get_all_patients', methods=['GET'])
 def get_all_patients():
@@ -162,6 +169,26 @@ def get_all_patients():
         return jsonify({'patients': patients})
     except Exception as e:
         return jsonify({'error': str(e)})
+@app.route('/get_patient_data/<patient_id>', methods=['GET'])
+def get_patient_data(patient_id):
+    try:
+        # Access the "patients" collection
+        patients_collection = mongo.db.patients
+
+        # Retrieve the patient data using the patient ID
+        patient_data = patients_collection.find_one({"_id": ObjectId(patient_id)})
+
+        # Exclude the MongoDB ObjectId from the response
+        if patient_data:
+            patient_data.pop('_id', None)
+
+        # Return the patient data as JSON
+        return jsonify({'patientData': patient_data})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
+
 
 
 
@@ -204,25 +231,6 @@ def stop_model():
         else:
             print("Model is not running")
             return jsonify({"message": "Model is not running"}), 400
-
-@app.route('/start_recording', methods=['GET'])
-def start_recording():
-    global video_writer
-    video_writer = cv2.VideoWriter('recorded_video.avi', cv2.VideoWriter_fourcc(*'XVID'), 10, (640, 480))
-    return jsonify({'message': 'Recording started'})
-
-@app.route('/stop_recording', methods=['GET'])
-def stop_recording():
-    global capture_frames, video_writer
-    capture_frames = False
-    if video_writer:
-        video_writer.release()
-        video_writer = None
-    return jsonify({'message': 'Recording stopped'})
-
-from flask import jsonify
-
-
 
 
 @app.route('/collect_emotions', methods=['GET'])

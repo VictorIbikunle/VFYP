@@ -65,10 +65,7 @@ const Goal = ({ goalData, progressData, onStatusChange, onDeleteGoal }) => {
 };
 
 const App = () => {
-  // Retrieve user goals from session storage or set an empty array if not found
-  const storedGoals = JSON.parse(sessionStorage.getItem('userGoals')) || [];
-  
-  const [goals, setGoals] = useState(storedGoals);
+  const [goals, setGoals] = useState([]);
   const [currentGoalIndex, setCurrentGoalIndex] = useState(0);
 
   const [goalData, setGoalData] = useState({
@@ -83,33 +80,50 @@ const App = () => {
     setGoalData({ ...goalData, [name]: value });
   };
 
-  const handleGoalSubmit = (e) => {
+  const handleGoalSubmit = async (e) => {
     e.preventDefault();
-    const newGoal = {
-      goalData: { ...goalData },
-      progressData: 0,
-    };
-    setGoals([...goals, newGoal]);
-    setCurrentGoalIndex(goals.length);
-    setGoalData({
-      name: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-    });
-
-    // Store updated goals in session storage
-    sessionStorage.setItem('userGoals', JSON.stringify([...goals, newGoal]));
+    
+    try {
+      // Make a POST request to your backend to save the data
+      const response = await fetch('http://localhost:5000/save_data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patient: {}, // Fill in with patient data if needed
+          goal: goalData,
+          emotion: {} // Fill in with emotion data if needed
+        }),
+      });
+  
+      if (response.ok) {
+        const result = await response.json();
+        console.log(result.message); // Log the success message from the server
+  
+        // Update the goals state if needed
+        setGoals([...goals, goalData]);
+        setCurrentGoalIndex(goals.length);
+  
+        // Reset the goalData state for the next goal
+        setGoalData({
+          name: '',
+          description: '',
+          startDate: '',
+          endDate: '',
+        });
+      } else {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error saving data:', error.message);
+    }
   };
+  
+  
 
   const handleStatusChange = (newProgress, isCompleted) => {
-    const updatedGoals = [...goals];
-    updatedGoals[currentGoalIndex].progressData = newProgress;
-    updatedGoals[currentGoalIndex].isCompleted = isCompleted;
-    setGoals(updatedGoals);
-
-    // Store updated goals in session storage
-    sessionStorage.setItem('userGoals', JSON.stringify(updatedGoals));
+    // Handle status change if needed
   };
 
   const handleDeleteGoal = () => {
@@ -123,8 +137,8 @@ const App = () => {
       endDate: '',
     });
 
-    // Store updated goals in session storage
-    sessionStorage.setItem('userGoals', JSON.stringify(updatedGoals));
+    // Store updated goals in session storage or send to the backend to save in the database
+    // Example: sendToBackend(updatedGoals);
   };
 
   const handleNextGoal = () => {
@@ -166,8 +180,8 @@ const App = () => {
 
       <div>
         <Goal
-          goalData={goals[currentGoalIndex]?.goalData || {}}
-          progressData={goals[currentGoalIndex]?.progressData || 0}
+          goalData={goals[currentGoalIndex] || {}}
+          progressData={0}
           onStatusChange={handleStatusChange}
           onDeleteGoal={handleDeleteGoal}
         />
