@@ -68,6 +68,17 @@ emotion_graph_schema = {
 # Create an emotion graph collection
 emotion_graph_collection = mongo.db.emotion_graph
 
+appointment_schema = {
+    "patient_id": ObjectId,  
+    "patient_name": str,
+    "appointment_time": str,
+    "appointment_date": str,
+}
+
+appointment_collection = mongo.db.appointments
+
+
+
 def emit_frame(frame):
     socketio.emit('frame', {'frame': frame})
 
@@ -123,31 +134,29 @@ def video_feed():
 def save_data():
     try:
         data = request.get_json()
+        print("Received data:", data)
         patient_data = data.get("patient")
-        goal_data = data.get("goal")
-        emotion_data = data.get("emotion")
+        appointment_data = data.get("appointment")
 
-        # Save patient data and obtain the patient ID
+        # Save patient data
         patient_id = patient_collection.insert_one(patient_data).inserted_id
 
-        # Associate patient ID with goal data
-        goal_data["patient_id"] = patient_id
-        goal_data["startDate"] = datetime.strptime(goal_data["startDate"], "%Y-%m-%d").strftime("%Y-%m-%d")
-        goal_data["endDate"] = datetime.strptime(goal_data["endDate"], "%Y-%m-%d").strftime("%Y-%m-%d")
+        # Associate patient ID with appointment data
+        appointment_data["patient_id"] = patient_id
+        appointment_data["appointment_time"] = datetime.strptime(data["appointment"]["time"], "%H:%M").strftime("%H:%M")
+        appointment_data["appointment_date"] = datetime.strptime(data["appointment"]["date"], "%Y-%m-%d").strftime("%Y-%m-%d")
 
-        # Save goal data into the goals collection
-        goals_collection.insert_one(goal_data)
-
-        # Associate patient ID with emotion data
-        emotion_data["patient_id"] = patient_id
-        log_collection.insert_one(emotion_data)
+        appointment_collection.insert_one(appointment_data)
 
         message = f"User selected: {patient_data['name']}"  # Create a message with the patient's name
 
         return jsonify({'message': 'Data added successfully', 'user_message': message})
     except Exception as e:
+        print(f"Error in save_data endpoint: {str(e)}")
         return jsonify({'error': str(e)})
-    
+
+
+
 
 
     

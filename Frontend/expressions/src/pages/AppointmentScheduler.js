@@ -1,151 +1,120 @@
-import React, { useState } from 'react';
-import './AppointmentScheduler.css';
+import React, { useState } from "react";
+import "./AppointmentScheduler.css"; // Add your CSS styling if needed
 
-const AppointmentForm = ({ selectedDateTime, onSubmit }) => {
-  const [patientName, setPatientName] = useState('');
+function AppointmentScheduler() {
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [name, setName] = useState("");
+  const [bookedAppointments, setBookedAppointments] = useState([]);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    onSubmit({ patientName, selectedDateTime });
-    setPatientName('');
+  const handleDateChange = (e) => {
+    setDate(e.target.value);
   };
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        Patient Name:
-        <input
-          type="text"
-          value={patientName}
-          onChange={(e) => setPatientName(e.target.value)}
-          required
-        />
-      </label>
-      <button type="submit">Book Appointment with Notification</button>
-    </form>
-  );
-};
-
-const AppointmentsList = ({ appointments, onDelete }) => {
-  return (
-    <div className="appointments-list-container">
-      <h2>All Appointments</h2>
-      <ul className="appointments-list">
-        {appointments.map((appointment, index) => (
-          <li key={index}>
-            <p>Patient Name: {appointment.patientName}</p>
-            <p>Time: {appointment.time.toLocaleString()}</p>
-            <button onClick={() => onDelete(index)}>Delete</button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-const setReminders = (appointmentTime) => {
-  const now = new Date();
-  const timeDifference = appointmentTime - now;
-
-  const fifteenMinutesBefore = timeDifference - 15 * 60 * 1000; // 15 minutes in milliseconds
-  const fiveMinutesBefore = timeDifference - 5 * 60 * 1000; // 5 minutes in milliseconds
-
-  if (fifteenMinutesBefore > 0) {
-    setTimeout(() => {
-      alert(`Appointment in 15 minutes: ${appointmentTime.toLocaleString()}`);
-    }, fifteenMinutesBefore);
-  }
-
-  if (fiveMinutesBefore > 0) {
-    setTimeout(() => {
-      alert(`Appointment in 5 minutes: ${appointmentTime.toLocaleString()}`);
-    }, fiveMinutesBefore);
-  }
-};
-
-const AppointmentScheduler = () => {
-  const [selectedDateTime, setSelectedDateTime] = useState(null);
-  const [isFormVisible, setIsFormVisible] = useState(false);
-  const [appointments, setAppointments] = useState([]);
-
-  const handleDateTimeChange = (date, time) => {
-    const selectedDateTime = new Date(`${date}T${time}`);
-    setSelectedDateTime(selectedDateTime);
-    setIsFormVisible(true);
+  const handleTimeChange = (e) => {
+    setTime(e.target.value);
   };
 
-  const handleFormSubmit = ({ patientName, selectedDateTime }) => {
-    // Handle the form submission logic (e.g., send data to the server)
-    console.log(
-      `Booking appointment for ${patientName} on ${selectedDateTime.toLocaleString()}`
-    );
+  const handleNameChange = (e) => {
+    setName(e.target.value);
+  };
 
-    // Trigger a notification
-    if ('Notification' in window) {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-          new Notification('Appointment Confirmed', {
-            body: `Appointment with ${patientName} on ${selectedDateTime.toLocaleString()} is confirmed!`,
-          });
-        }
+  const handleBookAppointment = async () => {
+    // Save the booking details locally
+    const newBooking = {
+      date,
+      time,
+      name,
+    };
+
+    setBookedAppointments([...bookedAppointments, newBooking]);
+
+    // Clear the input boxes
+    setDate("");
+    setTime("");
+    setName("");
+
+    // Save the booking details to the server
+    try {
+      const response = await fetch("http://localhost:5000/save_data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patient: {
+            name: name,
+            // Include other patient details if available
+            dob: "",
+            phone_number: "",
+          },
+          goal: {
+            // Include goal details if needed
+            name: "",
+            description: "",
+            startDate: "",
+            endDate: "",
+          },
+          emotion: {
+            // Include emotion details if needed
+            emotion: "",
+            timestamp: "",
+          },
+          appointment: {
+            patient_id: "", // You'll need to fetch the patient_id from the server or maintain it in your React state
+            patient_name: name,
+            date: date,
+            time: time,
+          },
+        }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Data saved successfully:", data);
+      } else {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error saving data:", error.message);
     }
-
-    // Set reminders for the new appointment
-    setReminders(selectedDateTime);
-
-    // Save the appointment
-    const newAppointment = { patientName, time: selectedDateTime };
-    setAppointments([...appointments, newAppointment]);
-
-    setIsFormVisible(false);
-    setSelectedDateTime(null); // Clear date and time
-  };
-
-  const handleDeleteAppointment = (index) => {
-    const updatedAppointments = [...appointments];
-    updatedAppointments.splice(index, 1);
-    setAppointments(updatedAppointments);
   };
 
   return (
-    <div>
+    <div className="AppointmentScheduler">
       <h1>Appointment Scheduler</h1>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div>
-          <h3>Select Date and Time:</h3>
-          <input
-            type="date"
-            onChange={(e) =>
-              handleDateTimeChange(e.target.value, selectedDateTime)
-            }
-          />
-          <input
-            type="time"
-            onChange={(e) =>
-              handleDateTimeChange(
-                selectedDateTime.toDateString(),
-                new Date(`1970-01-01T${e.target.value}:00`)
-              )
-            }
-          />
-        </div>
-        {isFormVisible && (
-          <div>
-            <h3>Add Patient:</h3>
-            <AppointmentForm
-              selectedDateTime={selectedDateTime}
-              onSubmit={handleFormSubmit}
-            />
-          </div>
-        )}
+
+      <div className="form-group">
+        <label>Date:</label>
+        <input type="date" value={date} onChange={handleDateChange} />
       </div>
-      <AppointmentsList
-        appointments={appointments}
-        onDelete={handleDeleteAppointment}
-      />
+
+      <div className="form-group">
+        <label>Time:</label>
+        <input type="time" value={time} onChange={handleTimeChange} />
+      </div>
+
+      <div className="form-group">
+        <label>Name:</label>
+        <input type="text" value={name} onChange={handleNameChange} />
+      </div>
+
+      <button onClick={handleBookAppointment}>Book Appointment</button>
+
+      {bookedAppointments.length > 0 && (
+        <div className="booked-appointments">
+          <h2>Booked Appointments</h2>
+          {bookedAppointments.map((appointment, index) => (
+            <div key={index} className="appointment-details">
+              <p>Date: {appointment.date}</p>
+              <p>Time: {appointment.time}</p>
+              <p>Name: {appointment.name}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default AppointmentScheduler;

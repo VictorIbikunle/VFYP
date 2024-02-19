@@ -11,6 +11,7 @@ const Patient = () => {
   const [patients, setPatients] = useState([]);
   const [userMessage, setUserMessage] = useState('');
   const [selectedPatientData, setSelectedPatientData] = useState(null);
+  const [showPatients, setShowPatients] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -85,6 +86,11 @@ const Patient = () => {
     fetchPatients();
   }, []);
 
+  const handleFetchPatients = () => {
+    fetchPatients();
+    setShowPatients(true);
+  };
+
   return (
     <div>
       <h1>Patient Information</h1>
@@ -111,20 +117,22 @@ const Patient = () => {
       )}
 
       {/* Button to fetch and display all patients */}
-      <button onClick={fetchPatients}>See All Patients</button>
+      <button onClick={handleFetchPatients}>See All Patients</button>
 
-      {/* Display the list of patients */}
-      <div>
-        <h2>All Patients</h2>
-        <ul>
-          {patients.map((patient) => (
-            <li key={patient._id}>
-              {patient.name}
-              <button onClick={() => fetchPatientData(patient._id)}>Select</button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {/* Display the list of patients if showPatients is true */}
+      {showPatients && (
+        <div>
+          <h2>All Patients</h2>
+          <ul>
+            {patients.map((patient) => (
+              <li key={patient._id}>
+                {patient.name}
+                <button onClick={() => fetchPatientData(patient._id)}>Select</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Display the selected patient data */}
       {selectedPatientData && (
