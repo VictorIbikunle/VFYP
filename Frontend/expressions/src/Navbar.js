@@ -24,6 +24,11 @@ export default function App(){
         <a href = "/Goal">Goals</a>
 
         </li>
+
+        <li>
+        <a href = "/Auth">Login</a>
+
+        </li>
       </ul>
   
   

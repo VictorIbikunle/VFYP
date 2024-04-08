@@ -164,20 +164,13 @@ def save_data():
 @app.route('/get_all_patients', methods=['GET'])
 def get_all_patients():
     try:
-        # Access the "patients" collection
-        patients_collection = mongo.db.patients
-
-        # Retrieve all patients from the collection
-        patients = list(patients_collection.find())
-
-        # Exclude the MongoDB ObjectId from the response
+        patients = list(mongo.db.patients.find({}, {'_id': 1, 'name': 1})) # Assuming you're just returning ID and name for listing
         for patient in patients:
-            patient.pop('_id', None)
-
-        # Return the list of patients as JSON
+            patient['_id'] = str(patient['_id'])  # Convert ObjectId to string
         return jsonify({'patients': patients})
     except Exception as e:
         return jsonify({'error': str(e)})
+
 @app.route('/get_patient_data/<patient_id>', methods=['GET'])
 def get_patient_data(patient_id):
     try:
@@ -280,6 +273,30 @@ def collect_emotions():
 
 
 
+@app.route('/start_or_resume_session/<patient_id>', methods=['GET'])
+def start_or_resume_session(patient_id):
+    try:
+        patient_id = ObjectId(patient_id)
+        # Check if there's an existing session for this patient
+        existing_session = mongo.db.sessions.find_one({"patient_id": patient_id, "end_time": {"$exists": False}})
+        
+        if existing_session:
+            # Resume the existing session
+            session_data = existing_session  # Add logic as needed to format session data
+        else:
+            # Start a new session
+            session_data = {
+                "patient_id": patient_id,
+                "start_time": datetime.utcnow(),
+                # "end_time": None,  # You can omit end_time or set it as None explicitly
+                "data_references": []  # Initialize an empty list or any starter data
+            }
+            mongo.db.sessions.insert_one(session_data)
+        
+        # Modify the response as per your needs
+        return jsonify({"message": "Session started or resumed", "session_data": str(session_data)}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 

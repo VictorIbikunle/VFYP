@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const Goal = ({ goalData, progressData, onStatusChange, onDeleteGoal }) => {
-  const [isCompleted, setIsCompleted] = useState(false);
-
+const Goal = ({ goalData, progressData, isCompleted, onStatusChange, onDeleteGoal }) => {
   const handleStatusChange = (status) => {
     if (!isCompleted) {
       let newProgress = 0;
@@ -15,11 +13,14 @@ const Goal = ({ goalData, progressData, onStatusChange, onDeleteGoal }) => {
           break;
         case 'Reached goal':
           newProgress = 100;
-          setIsCompleted(true);
+          onStatusChange(newProgress, true); // Pass true directly
           break;
         default:
           break;
       }
+
+      console.log('New Progress Data:', newProgress);
+      console.log('Is Completed:', isCompleted);
       onStatusChange(newProgress, isCompleted);
     }
   };
@@ -75,6 +76,20 @@ const App = () => {
     endDate: '',
   });
 
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [progressData, setProgressData] = useState(0);
+
+  useEffect(() => {
+    // Load goals from localStorage when the component mounts
+    const storedGoals = JSON.parse(localStorage.getItem('goals')) || [];
+    setGoals(storedGoals);
+  }, []);
+
+  useEffect(() => {
+    // Save goals to localStorage whenever goals are updated
+    localStorage.setItem('goals', JSON.stringify(goals));
+  }, [goals]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setGoalData({ ...goalData, [name]: value });
@@ -82,7 +97,7 @@ const App = () => {
 
   const handleGoalSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       // Make a POST request to your backend to save the data
       const response = await fetch('http://localhost:5000/save_data', {
@@ -93,18 +108,19 @@ const App = () => {
         body: JSON.stringify({
           patient: {}, // Fill in with patient data if needed
           goal: goalData,
-          emotion: {} // Fill in with emotion data if needed
+          emotion: {}, // Fill in with emotion data if needed
         }),
       });
-  
+
       if (response.ok) {
         const result = await response.json();
         console.log(result.message); // Log the success message from the server
-  
+
         // Update the goals state if needed
-        setGoals([...goals, goalData]);
-        setCurrentGoalIndex(goals.length);
-  
+        const updatedGoals = [...goals, goalData];
+        setGoals(updatedGoals);
+        setCurrentGoalIndex(updatedGoals.length);
+
         // Reset the goalData state for the next goal
         setGoalData({
           name: '',
@@ -112,6 +128,8 @@ const App = () => {
           startDate: '',
           endDate: '',
         });
+
+        console.log('Goals:', updatedGoals); // Log the updated goals
       } else {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
@@ -119,11 +137,10 @@ const App = () => {
       console.error('Error saving data:', error.message);
     }
   };
-  
-  
 
-  const handleStatusChange = (newProgress, isCompleted) => {
-    // Handle status change if needed
+  const handleStatusChange = (newProgress, completed) => {
+    setProgressData(newProgress);
+    setIsCompleted(completed);
   };
 
   const handleDeleteGoal = () => {
@@ -181,7 +198,8 @@ const App = () => {
       <div>
         <Goal
           goalData={goals[currentGoalIndex] || {}}
-          progressData={0}
+          progressData={progressData}
+          isCompleted={isCompleted}
           onStatusChange={handleStatusChange}
           onDeleteGoal={handleDeleteGoal}
         />

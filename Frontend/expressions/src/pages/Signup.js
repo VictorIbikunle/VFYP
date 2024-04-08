@@ -1,7 +1,7 @@
-// Remove the manual import of React if present
+
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { useState } from 'react'; // Import useState from 'react'
+import { useState } from 'react'; 
 import { useNavigate } from 'react-router-dom'; 
 
 function Signup() {

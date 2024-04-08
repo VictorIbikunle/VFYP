@@ -36,10 +36,13 @@ function AppointmentScheduler() {
 
     // Save the booking details to the server
     try {
+      const authToken = localStorage.getItem('authToken');
+
       const response = await fetch("http://localhost:5000/save_data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           patient: {
