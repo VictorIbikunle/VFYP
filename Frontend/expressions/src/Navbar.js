@@ -4,8 +4,7 @@ export default function App(){
       <a href="/" className="site-title">TherapEase Hub</a>
       <ul>
         <li>
-          <a href = "/Emotion Detector">Emotion Detector</a>
-  
+          <a href = "/EmotionDetector">Emotion Detector</a>
         </li>
         <li>
         <a href = "/Help">Report</a>
@@ -25,10 +24,7 @@ export default function App(){
 
         </li>
 
-        <li>
-        <a href = "/Auth">Login</a>
-
-        </li>
+        
       </ul>
   
   

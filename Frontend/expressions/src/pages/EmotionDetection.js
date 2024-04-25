@@ -4,26 +4,25 @@ import Chart from "chart.js/auto";
 import "./EmotionDetection.css";
 
 function EmotionDetection() {
-  const videoRef = useRef();
   const socket = useRef();
   const [modelCalling, setModelCalling] = useState(false);
   const chartRef = useRef(null);
 
   const updateChart = (emotionData) => {
     console.log("Emotion Data from Server:", emotionData);
-    const data = chartRef.current.data.datasets[0].data.slice();  // Use a copy of the current data
-  
+    const data = chartRef.current.data.datasets[0].data.slice(); // Use a copy of the current data
+
     // Assuming the server responds with emotion data as an array of objects
     if (Array.isArray(emotionData)) {
       // Map over the array and update the data
       emotionData.forEach((item) => {
         const index = ["Angry", "Disgusted", "Fearful", "Happy", "Neutral", "Sad", "Surprised"].indexOf(item.emotion);
-  
+
         if (index !== -1) {
           data[index] = item.count;
         }
       });
-  
+
       chartRef.current.data.datasets[0].data = data;
       chartRef.current.update();
     } else {
@@ -42,52 +41,42 @@ function EmotionDetection() {
     }
 
     chartRef.current = new Chart(ctx, {
-      type: 'bar',
+      type: "bar",
       data: {
         labels: ["Angry", "Disgusted", "Fearful", "Happy", "Neutral", "Sad", "Surprised"],
-        datasets: [{
-          label: 'Emotion Counts',
-          data: [0.0, 0.0, 0.0, 0.0, 0, 0, 0],
-          backgroundColor: [
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(255, 99, 132, 0.2)',
-          ],
-          borderColor: [
-            'rgba(255, 99, 132, 1)',
-            'rgba(255, 99, 132, 1)',
-            'rgba(255, 99, 132, 1)',
-            'rgba(255, 99, 132, 1)',
-            'rgba(255, 99, 132, 1)',
-            'rgba(255, 99, 132, 1)',
-            'rgba(255, 99, 132, 1)',
-          ],
-          borderWidth: 1
-        }]
+        datasets: [
+          {
+            label: "Emotion Counts",
+            data: [0.0, 0.0, 0.0, 0.0, 0, 0, 0],
+            backgroundColor: [
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+            ],
+            borderColor: [
+              "rgba(255, 99, 132, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(255, 99, 132, 1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
       },
       options: {
         scales: {
           y: {
-            beginAtZero: true
-          }
-        }
-      }
-    });
-
-    socket.current.on("frame", (data) => {
-      if (videoRef.current) {
-        videoRef.current.src = `data:image/jpeg;base64,${data.frame}`;
-      }
-    });
-
-    socket.current.on("stop_stream", () => {
-      if (videoRef.current) {
-        videoRef.current.src = "";
-      }
+            beginAtZero: true,
+          },
+        },
+      },
     });
 
     socket.current.on("emotion_data", (data) => {
@@ -109,10 +98,10 @@ function EmotionDetection() {
     try {
       const response = await fetch("http://127.0.0.1:5000/call_model", {
         method: "GET",
-        credentials: 'include',
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'http://localhost:3000',
+          "Content-Type": "application/json",
+          Origin: "http://localhost:3000",
         },
       });
 
@@ -120,7 +109,7 @@ function EmotionDetection() {
         const result = await response.json();
         console.log("Model Result:", result.message);
 
-        if ('emotionData' in result) {
+        if ("emotionData" in result) {
           console.log("Emotion Data:", result.emotionData);
           updateChart(result.emotionData);
         } else {
@@ -140,10 +129,10 @@ function EmotionDetection() {
     try {
       const response = await fetch("http://127.0.0.1:5000/stop_model", {
         method: "GET",
-        credentials: 'include',
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'http://localhost:3000',
+          "Content-Type": "application/json",
+          Origin: "http://localhost:3000",
         },
       });
 
@@ -163,10 +152,10 @@ function EmotionDetection() {
     try {
       const response = await fetch("http://127.0.0.1:5000/collect_emotions", {
         method: "GET",
-        credentials: 'include',
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'http://localhost:3000',
+          "Content-Type": "application/json",
+          Origin: "http://localhost:3000",
         },
       });
 
@@ -174,7 +163,7 @@ function EmotionDetection() {
         const result = await response.json();
         console.log("Emotions Collected:", result.message);
 
-        if ('emotionData' in result) {
+        if ("emotionData" in result) {
           console.log("Emotion Data:", result.emotionData);
           updateChart(result.emotionData);
         } else {
@@ -191,19 +180,12 @@ function EmotionDetection() {
   return (
     <div className="EmotionDetection">
       <p>Live Emotion Detection</p>
-      <div className="video-container">
-        <video ref={videoRef} autoPlay playsInline controls />
-      </div>
       <canvas id="emotionChart" width="400" height="200"></canvas>
       <button onClick={callModel} disabled={modelCalling}>
         {modelCalling ? "Calling Model..." : "Call Model"}
       </button>
-      <button onClick={stopModel}>
-        Stop Model
-      </button>
-      <button onClick={collectEmotions}>
-        Collect Emotions
-      </button>
+      <button onClick={stopModel}>Stop Model</button>
+      <button onClick={collectEmotions}>Collect Emotions</button>
     </div>
   );
 }

@@ -1,217 +1,138 @@
-import React, { useState, useEffect } from 'react';
+// App.js
 
-const Goal = ({ goalData, progressData, isCompleted, onStatusChange, onDeleteGoal }) => {
+import React, { useState, useEffect } from "react";
+
+const Goal = ({ goalData, progressData = 0, isCompleted = false, onStatusChange, onDeleteGoal, setShowRewardsPopup }) => {
   const handleStatusChange = (status) => {
     if (!isCompleted) {
       let newProgress = 0;
       switch (status) {
-        case 'Doing well':
+        case "Doing well":
           newProgress = Math.min(progressData + 25, 100);
           break;
-        case 'Making progress':
+        case "Making progress":
           newProgress = Math.min(progressData + 50, 100);
           break;
-        case 'Reached goal':
+        case "Reached goal":
           newProgress = 100;
-          onStatusChange(newProgress, true); // Pass true directly
+          triggerRewardSystem();
           break;
         default:
           break;
       }
-
-      console.log('New Progress Data:', newProgress);
-      console.log('Is Completed:', isCompleted);
-      onStatusChange(newProgress, isCompleted);
+      onStatusChange(goalData._id, newProgress, newProgress === 100);
     }
+  };
+
+  const triggerRewardSystem = () => {
+    console.log("Reward system triggered!");
+    setShowRewardsPopup(true); // Show rewards popup when the system is triggered
   };
 
   return (
     <div>
-      {goalData.name && (
-        <div>
-          <h3>{goalData.name}</h3>
-          <p>{goalData.description}</p>
-          <p>Start Date: {goalData.startDate}</p>
-          <p>End Date: {goalData.endDate}</p>
-          <div style={{ width: '100%', backgroundColor: '#ddd', marginTop: '10px' }}>
-            <div
-              style={{
-                width: `${progressData}%`,
-                height: '20px',
-                backgroundColor: isCompleted ? '#4CAF50' : '#2196F3',
-                textAlign: 'center',
-                lineHeight: '20px',
-                color: 'white',
-              }}
-            >
-              {isCompleted ? 'Completed' : `${progressData}%`}
-            </div>
-          </div>
-          <div>
-            <button onClick={() => handleStatusChange('Doing well')} disabled={isCompleted}>
-              Doing well
-            </button>
-            <button onClick={() => handleStatusChange('Making progress')} disabled={isCompleted}>
-              Making progress
-            </button>
-            <button onClick={() => handleStatusChange('Reached goal')} disabled={isCompleted}>
-              Reached goal
-            </button>
-            <button onClick={onDeleteGoal}>Delete Goal</button>
-          </div>
+      <h3>{goalData.name}</h3>
+      <p>{goalData.description}</p>
+      <p>Start Date: {goalData.startDate}</p>
+      <p>End Date: {goalData.endDate}</p>
+      <div style={{ width: "100%", backgroundColor: "#ddd", marginTop: "10px" }}>
+        <div
+          style={{
+            width: `${progressData}%`,
+            height: "20px",
+            backgroundColor: isCompleted ? "#4CAF50" : "#2196F3",
+            textAlign: "center",
+            lineHeight: "20px",
+            color: "white",
+          }}
+        >
+          {isCompleted ? "Completed" : `${progressData}%`}
         </div>
-      )}
+      </div>
+      <div>
+        <button onClick={() => handleStatusChange("Doing well")} disabled={isCompleted}>Doing well</button>
+        <button onClick={() => handleStatusChange("Making progress")} disabled={isCompleted}>Making progress</button>
+        <button onClick={() => handleStatusChange("Reached goal")} disabled={isCompleted}>Reached goal</button>
+        <button onClick={() => onDeleteGoal(goalData._id)}>Delete Goal</button>
+      </div>
     </div>
   );
 };
 
 const App = () => {
   const [goals, setGoals] = useState([]);
-  const [currentGoalIndex, setCurrentGoalIndex] = useState(0);
-
   const [goalData, setGoalData] = useState({
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
+    name: "",
+    description: "",
+    startDate: "",
+    endDate: ""
   });
 
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [progressData, setProgressData] = useState(0);
+  const [showRewardsPopup, setShowRewardsPopup] = useState(false); // State for showing rewards popup
 
   useEffect(() => {
-    // Load goals from localStorage when the component mounts
-    const storedGoals = JSON.parse(localStorage.getItem('goals')) || [];
-    setGoals(storedGoals);
+    fetch("http://localhost:5000/get_goals")
+      .then(response => response.json())
+      .then(data => setGoals(data.map(g => ({...g, progressData: g.progressData || 0, isCompleted: g.isCompleted || false}))))
+      .catch(error => console.error('Error fetching goals:', error));
   }, []);
 
-  useEffect(() => {
-    // Save goals to localStorage whenever goals are updated
-    localStorage.setItem('goals', JSON.stringify(goals));
-  }, [goals]);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setGoalData({ ...goalData, [name]: value });
-  };
-
-  const handleGoalSubmit = async (e) => {
-    e.preventDefault();
-
+  const handleGoalSubmit = async (event) => {
+    event.preventDefault();
     try {
-      // Make a POST request to your backend to save the data
-      const response = await fetch('http://localhost:5000/save_data', {
-        method: 'POST',
+      const response = await fetch("http://localhost:5000/save_goal", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          patient: {}, // Fill in with patient data if needed
-          goal: goalData,
-          emotion: {}, // Fill in with emotion data if needed
-        }),
+        body: JSON.stringify({ goal: goalData })
       });
-
       if (response.ok) {
-        const result = await response.json();
-        console.log(result.message); // Log the success message from the server
-
-        // Update the goals state if needed
-        const updatedGoals = [...goals, goalData];
-        setGoals(updatedGoals);
-        setCurrentGoalIndex(updatedGoals.length);
-
-        // Reset the goalData state for the next goal
-        setGoalData({
-          name: '',
-          description: '',
-          startDate: '',
-          endDate: '',
-        });
-
-        console.log('Goals:', updatedGoals); // Log the updated goals
+        const newGoal = await response.json();
+        setGoals([...goals, { ...goalData, progressData: 0, isCompleted: false, _id: newGoal.goal_id }]);
+        setGoalData({ name: "", description: "", startDate: "", endDate: "" });
       } else {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error('Failed to save the goal');
       }
     } catch (error) {
-      console.error('Error saving data:', error.message);
-    }
-  };
-
-  const handleStatusChange = (newProgress, completed) => {
-    setProgressData(newProgress);
-    setIsCompleted(completed);
-  };
-
-  const handleDeleteGoal = () => {
-    const updatedGoals = [...goals];
-    updatedGoals.splice(currentGoalIndex, 1);
-    setGoals(updatedGoals);
-    setGoalData({
-      name: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-    });
-
-    // Store updated goals in session storage or send to the backend to save in the database
-    // Example: sendToBackend(updatedGoals);
-  };
-
-  const handleNextGoal = () => {
-    if (currentGoalIndex < goals.length - 1) {
-      setCurrentGoalIndex(currentGoalIndex + 1);
-    }
-  };
-
-  const handlePrevGoal = () => {
-    if (currentGoalIndex > 0) {
-      setCurrentGoalIndex(currentGoalIndex - 1);
+      console.error("Error saving goal:", error);
     }
   };
 
   return (
     <div>
-      <div>
-        <h1>Goal Tracker</h1>
-        <form onSubmit={handleGoalSubmit}>
-          <label>
-            Name:
-            <input type="text" name="name" value={goalData.name} onChange={handleInputChange} />
-          </label>
-          <label>
-            Description:
-            <input type="text" name="description" value={goalData.description} onChange={handleInputChange} />
-          </label>
-          <label>
-            Start Date:
-            <input type="date" name="startDate" value={goalData.startDate} onChange={handleInputChange} />
-          </label>
-          <label>
-            End Date:
-            <input type="date" name="endDate" value={goalData.endDate} onChange={handleInputChange} />
-          </label>
-          <button type="submit">Create Goal</button>
-        </form>
-      </div>
-
-      <div>
+      <h1>Goal Tracker</h1>
+      {goals.map((goal, index) => (
         <Goal
-          goalData={goals[currentGoalIndex] || {}}
-          progressData={progressData}
-          isCompleted={isCompleted}
-          onStatusChange={handleStatusChange}
-          onDeleteGoal={handleDeleteGoal}
+          key={goal._id || index}
+          goalData={goal}
+          progressData={goal.progressData}
+          isCompleted={goal.isCompleted}
+          onStatusChange={(goalId, newProgress, completed) => {
+            const updatedGoals = goals.map(g =>
+              g._id === goalId ? { ...g, progressData: newProgress, isCompleted: completed } : g);
+            setGoals(updatedGoals);
+          }}
+          onDeleteGoal={(goalId) => {
+            setGoals(goals.filter(g => g._id !== goalId));
+          }}
+          setShowRewardsPopup={setShowRewardsPopup} // Pass setShowRewardsPopup to Goal component
         />
-        <div>
-          <button onClick={handlePrevGoal} disabled={currentGoalIndex === 0}>
-            Previous Goal
-          </button>
-          <button onClick={handleNextGoal} disabled={currentGoalIndex === goals.length - 1}>
-            Next Goal
-          </button>
+      ))}
+      <form onSubmit={handleGoalSubmit}>
+        <input type="text" placeholder="Goal Name" value={goalData.name} onChange={(e) => setGoalData({...goalData, name: e.target.value})} />
+        <input type="text" placeholder="Description" value={goalData.description} onChange={(e) => setGoalData({...goalData, description: e.target.value})} />
+        <input type="date" value={goalData.startDate} onChange={(e) => setGoalData({...goalData, startDate: e.target.value})} />
+        <input type="date" value={goalData.endDate} onChange={(e) => setGoalData({...goalData, endDate: e.target.value})} />
+        <button type="submit">Create Goal</button>
+      </form>
+      {showRewardsPopup && (
+        <div className="rewards-popup">
+          {/* Rewards content */}
+          <h2>Congratulations! You've unlocked a reward!</h2>
+          <button onClick={() => setShowRewardsPopup(false)}>Close</button> {/* Button to close popup */}
         </div>
-      </div>
+      )}
     </div>
   );
 };

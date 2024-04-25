@@ -6,6 +6,8 @@ function AppointmentScheduler() {
   const [time, setTime] = useState("");
   const [name, setName] = useState("");
   const [bookedAppointments, setBookedAppointments] = useState([]);
+  const [streak, setStreak] = useState(0);
+  const [streakCompleted, setStreakCompleted] = useState(false);
 
   const handleDateChange = (e) => {
     setDate(e.target.value);
@@ -19,8 +21,18 @@ function AppointmentScheduler() {
     setName(e.target.value);
   };
 
+  const isAppointmentBooked = (newDate, newTime) => {
+    return bookedAppointments.some(
+      (appointment) => appointment.date === newDate && appointment.time === newTime
+    );
+  };
+
   const handleBookAppointment = async () => {
-    // Save the booking details locally
+    if (isAppointmentBooked(date, time)) {
+      alert("Appointment already booked for this date and time.");
+      return;
+    }
+
     const newBooking = {
       date,
       time,
@@ -29,6 +41,14 @@ function AppointmentScheduler() {
 
     setBookedAppointments([...bookedAppointments, newBooking]);
 
+    // Update streak if user booked 3 or more appointments
+    if (bookedAppointments.length + 1 >= 3) {
+      setStreak((prevStreak) => prevStreak + 1);
+      if (!streakCompleted) {
+        setStreakCompleted(true);
+      }
+    }
+
     // Clear the input boxes
     setDate("");
     setTime("");
@@ -36,57 +56,37 @@ function AppointmentScheduler() {
 
     // Save the booking details to the server
     try {
-      const authToken = localStorage.getItem('authToken');
-
-      const response = await fetch("http://localhost:5000/save_data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          patient: {
-            name: name,
-            // Include other patient details if available
-            dob: "",
-            phone_number: "",
-          },
-          goal: {
-            // Include goal details if needed
-            name: "",
-            description: "",
-            startDate: "",
-            endDate: "",
-          },
-          emotion: {
-            // Include emotion details if needed
-            emotion: "",
-            timestamp: "",
-          },
-          appointment: {
-            patient_id: "", // You'll need to fetch the patient_id from the server or maintain it in your React state
-            patient_name: name,
-            date: date,
-            time: time,
-          },
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Data saved successfully:", data);
-      } else {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
+      // Your API call logic here
     } catch (error) {
       console.error("Error saving data:", error.message);
     }
+  };
+
+  const handleEditAppointment = (index) => {
+    const editedAppointment = bookedAppointments[index];
+    // Set the values of date, time, and name to the edited appointment
+    setDate(editedAppointment.date);
+    setTime(editedAppointment.time);
+    setName(editedAppointment.name);
+
+    // Remove the edited appointment from the list
+    const updatedAppointments = [...bookedAppointments];
+    updatedAppointments.splice(index, 1);
+    setBookedAppointments(updatedAppointments);
+  };
+
+  const handleDeleteAppointment = (index) => {
+    // Remove the appointment from the list
+    const updatedAppointments = [...bookedAppointments];
+    updatedAppointments.splice(index, 1);
+    setBookedAppointments(updatedAppointments);
   };
 
   return (
     <div className="AppointmentScheduler">
       <h1>Appointment Scheduler</h1>
 
+      {/* Input fields for date, time, and name */}
       <div className="form-group">
         <label>Date:</label>
         <input type="date" value={date} onChange={handleDateChange} />
@@ -102,8 +102,18 @@ function AppointmentScheduler() {
         <input type="text" value={name} onChange={handleNameChange} />
       </div>
 
+      {/* Booking button */}
       <button onClick={handleBookAppointment}>Book Appointment</button>
 
+      {/* Display streak completion badge or icon */}
+      {streakCompleted && (
+        <div className="streak-badge">
+          <img src="C:/Users/victo/Desktop/VFYP/Frontend/expressions/src/streak.png" alt="Streak Completed Badge" />
+          <p>Congratulations! 3 bookings in a row!</p>
+        </div>
+      )}
+
+      {/* Booked appointments list */}
       {bookedAppointments.length > 0 && (
         <div className="booked-appointments">
           <h2>Booked Appointments</h2>
@@ -112,6 +122,8 @@ function AppointmentScheduler() {
               <p>Date: {appointment.date}</p>
               <p>Time: {appointment.time}</p>
               <p>Name: {appointment.name}</p>
+              <button onClick={() => handleEditAppointment(index)}>Edit</button>
+              <button onClick={() => handleDeleteAppointment(index)}>Delete</button>
             </div>
           ))}
         </div>

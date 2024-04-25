@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
+from flask import request, jsonify
+from datetime import datetime
 from flask_pymongo import PyMongo
 import cv2
 import numpy as np
@@ -13,8 +15,13 @@ from datetime import datetime
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
-app.config["MONGO_URI"] = "mongodb://localhost:27017/Logs"
-mongo = PyMongo(app)
+app.config["MONGO_URI"] = "mongodb://localhost:27017/vfyp"
+try:
+    mongo = PyMongo(app)
+    print("Connected to MongoDB")
+except Exception as e:
+    print("Error connecting to MongoDB:", e)
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 collecting_mode = False
 
@@ -46,6 +53,9 @@ patient_schema = {
 # Create a patient collection
 patient_collection = mongo.db.patients
 
+
+
+# Define the goal schema
 goals_schema = {
     "name": str,
     "description": str,
@@ -54,9 +64,15 @@ goals_schema = {
     "patient_id": ObjectId
 }
 
-
 goals_collection = mongo.db.goals
 
+# Define the answer schema
+answer_schema = {
+    "question": str,  
+    "answer": str  
+}
+
+answer_collection = mongo.db.answers
 
 # Define the emotion graph schema
 emotion_graph_schema = {
@@ -75,7 +91,28 @@ appointment_schema = {
     "appointment_date": str,
 }
 
+# Define the session schema
+session_schema = {
+    "patient_id": ObjectId,
+    "start_time": datetime,
+    "end_time": datetime,
+    "data_references": list
+}
+
+
 appointment_collection = mongo.db.appointments
+
+session_collection = mongo.db.sessions
+
+report_collection = mongo.db.reports
+
+reward_schema = {
+    "name": str,  # Name of the reward
+    "description": str  # Description of the reward
+}
+
+reward_collection = mongo.db.rewards
+
 
 
 
@@ -159,26 +196,53 @@ def save_data():
 
 
 
+@app.route('/submit_report', methods=['POST'])
+def submit_report():
+    try:
+        data = request.get_json()
+        patient_name = data.get("patientName")
+        notes = data.get("notes")
+        reference = data.get("reference")
+
+        # Save report data to MongoDB
+        report_data = {
+            "patientName": patient_name,
+            "notes": notes,
+            "reference": reference,
+            "timestamp": datetime.utcnow()  # Add timestamp for record
+        }
+        report_id = report_collection.insert_one(report_data).inserted_id
+
+        message = f"Report submitted successfully for {patient_name}."
+
+        return jsonify({'message': message, 'reportId': str(report_id)})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
+
+
     
     # Define the endpoint to get all patients
 @app.route('/get_all_patients', methods=['GET'])
 def get_all_patients():
     try:
-        patients = list(mongo.db.patients.find({}, {'_id': 1, 'name': 1})) # Assuming you're just returning ID and name for listing
+        patients = list(mongo.db.patients.find({}, {'_id': 1, 'name': 1, 'dob': 1, 'phoneNumber': 1}))  # Include additional patient details
         for patient in patients:
             patient['_id'] = str(patient['_id'])  # Convert ObjectId to string
         return jsonify({'patients': patients})
     except Exception as e:
         return jsonify({'error': str(e)})
 
-@app.route('/get_patient_data/<patient_id>', methods=['GET'])
-def get_patient_data(patient_id):
+
+@app.route('/get_patient/<patient_name>', methods=['GET'])
+def get_patient_by_name(patient_name):
     try:
         # Access the "patients" collection
         patients_collection = mongo.db.patients
 
-        # Retrieve the patient data using the patient ID
-        patient_data = patients_collection.find_one({"_id": ObjectId(patient_id)})
+        # Retrieve the patient data using the patient name
+        patient_data = patients_collection.find_one({"name": patient_name})
 
         # Exclude the MongoDB ObjectId from the response
         if patient_data:
@@ -188,9 +252,50 @@ def get_patient_data(patient_id):
         return jsonify({'patientData': patient_data})
     except Exception as e:
         return jsonify({'error': str(e)})
+    
+
+
+@app.route('/save_goal', methods=['POST'])
+def save_goal():
+    try:
+        data = request.get_json()
+        goal_data = data.get("goal")
+
+        # Save goal data to MongoDB
+        goal_id = goals_collection.insert_one(goal_data).inserted_id
+
+        git
+        if goal_data.get("progressData") == 100:
+           
+            reward_data = {
+                "name": "Achievement Reward",
+                "description": "Congratulations! You've achieved a goal."
+            }
+            reward_id = reward_collection.insert_one(reward_data).inserted_id
+
+            goal_data["reward_id"] = reward_id
+            goals_collection.update_one({"_id": goal_id}, {"$set": {"reward_id": reward_id}})
+
+        message = f"Goal saved successfully with ID: {goal_id}"
+
+        return jsonify({'message': message, 'goal_id': str(goal_id)})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 
 
+@app.route('/add_reward', methods=['POST'])
+def add_reward():
+    try:
+        data = request.get_json()
+        reward_data = {
+            "name": data.get("name"),
+            "description": data.get("description")
+        }
+        reward_id = reward_collection.insert_one(reward_data).inserted_id
+        return jsonify({'message': 'Reward added successfully', 'reward_id': str(reward_id)})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 
 
@@ -277,27 +382,23 @@ def collect_emotions():
 def start_or_resume_session(patient_id):
     try:
         patient_id = ObjectId(patient_id)
-        # Check if there's an existing session for this patient
-        existing_session = mongo.db.sessions.find_one({"patient_id": patient_id, "end_time": {"$exists": False}})
+        existing_session = session_collection.find_one({"patient_id": patient_id, "end_time": {"$exists": False}})
         
         if existing_session:
             # Resume the existing session
-            session_data = existing_session  # Add logic as needed to format session data
+            session_data = existing_session
         else:
             # Start a new session
             session_data = {
                 "patient_id": patient_id,
                 "start_time": datetime.utcnow(),
-                # "end_time": None,  # You can omit end_time or set it as None explicitly
-                "data_references": []  # Initialize an empty list or any starter data
+                "data_references": []
             }
-            mongo.db.sessions.insert_one(session_data)
+            session_collection.insert_one(session_data)
         
-        # Modify the response as per your needs
         return jsonify({"message": "Session started or resumed", "session_data": str(session_data)}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
 

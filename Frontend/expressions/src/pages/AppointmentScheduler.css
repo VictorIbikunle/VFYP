@@ -1,7 +1,7 @@
 /* AppointmentScheduler.css */
 
 /* Styles for the scheduler container */
-.scheduler-container {
+.AppointmentScheduler {
   max-width: 800px;
   margin: 20px auto;
   padding: 20px;
@@ -9,66 +9,82 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Styles for the scheduler content */
-.scheduler-content {
-  display: flex;
-  justify-content: space-between;
+/* Styles for the form group */
+.form-group {
+  margin-bottom: 20px;
 }
 
-/* Styles for the time slots container */
-.time-slots-container {
-  width: 45%;
+/* Styles for the input fields */
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
 }
 
-.time-slots-list {
-  list-style: none;
-  padding: 0;
-}
-
-.time-slots-list li {
+.form-group input[type="date"],
+.form-group input[type="time"],
+.form-group input[type="text"] {
+  width: 100%;
   padding: 10px;
-  margin-bottom: 8px;
-  background-color: #f0f0f0;
-  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
 }
 
-.time-slots-list li:hover {
-  background-color: #e0e0e0;
-}
-
-/* Styles for the selected time container */
-.selected-time-container {
-  width: 45%;
-  padding: 20px;
-  border: 1px solid #ddd;
-}
-
-.selected-time-container h2 {
-  color: #333;
-}
-
-.selected-time-container p {
-  margin: 0;
-  color: #555;
-}
-
-.selected-time-container button {
+/* Styles for the button */
+.form-group button {
   background-color: #4caf50;
   color: #fff;
   padding: 10px 15px;
   border: none;
   cursor: pointer;
-  margin-right: 10px;
+  border-radius: 5px;
 }
 
-.selected-time-container button:hover {
+.form-group button:hover {
   background-color: #45a049;
 }
 
-.selected-time-container button:last-child {
-  background-color: #f44336;
+/* Styles for the booking notification */
+.booking-notification {
+  background-color: #4caf50;
+  color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  margin-top: 20px;
 }
 
-.selected-time-container button:last-child:hover {
-  background-color: #d32f2f;
+.booking-notification button {
+  background-color: transparent;
+  border: 1px solid #fff;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.booking-notification button:hover {
+  background-color: #fff;
+  color: #4caf50;
+}
+
+/* Styles for the booked appointments */
+.booked-appointments {
+  margin-top: 20px;
+}
+
+.booked-appointments h2 {
+  color: #333;
+}
+
+.appointment-details {
+  background-color: #f0f0f0;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.appointment-details p {
+  margin: 0;
 }
