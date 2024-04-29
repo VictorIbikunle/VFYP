@@ -100,7 +100,7 @@ const Home = () => {
   return (
     <div>
       <h1>Patient Information</h1>
-      <h2>Welcome, {selectedPatientData ? selectedPatientData.name : username || "User"}!</h2>
+      <h2>Session With, {selectedPatientData ? selectedPatientData.name : username || "User"}!</h2>
       <div className="text-center">{selectedPatientData ? <ClearLocalStorageButton /> : null}</div>
       <form onSubmit={handlePatientSubmit}>
         <label>
